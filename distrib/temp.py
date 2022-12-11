@@ -9,7 +9,7 @@ def print_temp(DHT_PIN):
     humidity, temperature = get_temp(DHT_PIN)
 
     if humidity is not None and temperature is not None:
-        print("\nTemperatura = {0:0.1f}ºC\nUmidade = {1:0.1f}%".format(temperature, humidity))
+        print("Temperatura \t\t{0:0.1f}ºC\nUmidade \t\t{1:0.1f}%".format(temperature, humidity))
     else:
         print("Falha ao receber os dados do sensor de umidade")
 
