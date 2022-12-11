@@ -1,71 +1,134 @@
 from time import sleep
-import random
 import json
 import sys
 
 import RPi.GPIO as gp
 
-from temp import temp_loop
+from temp import *
+from setup import *
 
 gp.setmode(gp.BCM)
 gp.setwarnings(False)
 
-text ="""
-[1] Ligar as lâmpadas
-[2] Checar a temperatura
-[3] Nada ainda
+placa = load_json(sys.argv[1])
+setup(placa)
+
+estado_l1 = gp.input(placa['OUT']['L_01'])
+estado_l2 = gp.input(placa['OUT']['L_02'])
+estado_ac = gp.input(placa['OUT']['AC'])
+estado_pr = gp.input(placa['OUT']['PR'])
+
+CONSOLE ="""
+--------Painel de Controle-------
+    [1] Acionar as lâmpadas
+    [2] Acionar o ar-condicionado
+    [3] Acionar o projetor
+    [4] Checar a temperatura
+    [5] Checar estados
+    [6] Desligar tudo
+    [0] Terminar o programa
+
 """
 
-def setup(pinos):
-    for pino in pinos['IN'].values():
-        gp.setup(pino, gp.IN)
-    for pino in pinos['OUT'].values():
-        gp.setup(pino, gp.OUT)
+LAMPADAS ="""
+---------Acionar Lâmpadas---------
+    [1] Lâmpada 1
+    [2] Lâmpada 2
+    [3] Todas
+    [0] Retornar
 
-
-def load_json(filename) -> dict:
-    with open(filename, 'r') as f:
-        file = json.load(f)
-    return file
-
+"""
 
 def set_high(pino) -> bool:
     gp.output(pino, gp.HIGH)
-    print('ta ligada')
     return True
 
 
 def set_low(pino) -> bool:
     gp.output(pino, gp.LOW)
-    print('ta desligada')
     return False
 
 
-def interruptor(pino):
+def interruptor(pino) -> bool:
     if gp.input(pino):
         return set_low(pino)
     else:
         return set_high(pino)
+
+
+def desliga_sala(placa):
+    for pino in placa['OUT'].values():
+        set_low(pino)
+    print('\nTodas as cargas foram desligadas')
+
+
+def controla_lampadas(placa):
+    acao = input(LAMPADAS)
+    if(acao == '0'):
+        return
+    elif(acao == '1'):
+        pino = placa['OUT']['L_01']
+        estado_l1 = interruptor(pino)
+        print('\nLâmpada 1 ligada') if estado_l1 else print('\nLâmpada 1 desligada')
+    elif(acao == '2'):
+        pino = placa['OUT']['L_02']
+        estado_l2 = interruptor(pino)
+        print('\nLâmpada 2 ligada') if estado_l2 else print('\nLâmpada 2 desligada')
+    elif(acao == '3'):
+        pino = placa['OUT']['L_01']
+        estado_l1 = interruptor(pino)
+        print('\nLâmpada 1 ligada') if estado_l1 else print('\nLâmpada 1 desligada')
+        pino = placa['OUT']['L_02']
+        estado_l2 = interruptor(pino)
+        print('Lâmpada 2 ligada') if estado_l2 else print('Lâmpada 2 desligada')
+
+
+def print_estados():
+    if estado_l1:
+        print('Lâmpada 1: ligada')
+    else:
+        print('Lâmpada 1: desligada')
     
-   
+    if estado_l2:
+        print('Lâmpada 2: ligada')
+    else:
+        print('Lâmpada 2: desligada')
+    
+    if estado_ac:
+        print('Ar-condicionado: ligado')
+    else:
+        print('Ar-condicionado: desligado')
+
+    if estado_pr:
+        print('Projetor: ligado')
+    else:
+        print('Projetor: desligado')
+
 
 def main():
-    json_file = sys.argv[1]
-    placa = load_json(json_file)
-    setup(placa)
+    ativo = True
 
-    acao = input(text)
+    while(ativo):
+        acao = input(CONSOLE)
+        if(acao == '0'): # desliga
+            ativo = False
+        elif(acao == '1'): # lamp
+            controla_lampadas(placa)
+        elif(acao == '2'): # ac
+            pino = placa['OUT']['AC']
+            estado_ac = interruptor(pino)
+            print('\nAC ligado') if estado_ac else print('\nAC desligado')
+        elif(acao == '3'): # projetor
+            pino = placa['OUT']['PR']
+            estado_pr = interruptor(pino)
+            print('\nProjetor ligado') if estado_pr else print('\nProjetor desligado')
+        elif(acao == '4'): # temp
+            print_temp(placa['DHT22'])
+        elif(acao == '5'): # estados
+            print_estados()
+        elif(acao == '6'): # desliga sala
+            desliga_sala(placa)
 
-    if(acao == '1'):
-        pino = placa['OUT']['AL_BZ']
-
-
-
-    for i in range(random.randint(3,12)):
-        estado = interruptor(pino)
-        sleep(3)
-
-    print(estado)
 
 if __name__ == '__main__':
     main()
