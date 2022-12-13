@@ -1,7 +1,8 @@
-import adafruit_dht as DHT
+from time import sleep, time
+import Adafruit_DHT as DHT
 import RPi.GPIO as GPIO
+import threading
 import json
-import board
 
 class Room:
     inp : dict
@@ -51,14 +52,8 @@ class Room:
                 self.out['AL_BZ'] = item['gpio']
         
         # creates a dict through dict comprehension to store the state of all outputs
-        self.state = {key: False for key in self.out}
-        self.dht22_pin = file['sensor_temperatura'][0]['gpio']
-        
-        if self.dht22_pin == 18:
-            self.dht22 = DHT.DHT22(board.D18) #self.dht22_pin
-        elif self.dht22_pin == 4:
-            self.dht22 = DHT.DHT22(board.D4) #self.dht22_pin
-
+        self.state = {k: False for k in self.out}
+        self.dht22 = file['sensor_temperatura'][0]['gpio']
         self.ppl_qty = 0
         self.alarm_on = False
 
@@ -73,10 +68,10 @@ class Room:
         GPIO.add_event_detect(self.inp['SC_IN'], GPIO.RISING)
         GPIO.add_event_detect(self.inp['SC_OUT'], GPIO.RISING)
 
-        self.all_off()
+        self.turn_off()
     
 
-    def all_off(self) -> None:
+    def turn_off(self) -> None:
         for pin in self.out:
             self.set_low(pin)
     
@@ -98,24 +93,69 @@ class Room:
             self.ppl_qty -= 1
 
 
-    def check_temp(self) -> int:
-        try:
-            self.temp = self.dht22.temperature
-            self.humd = self.dht22.humidity
-            return 0
-        except RuntimeError:
-            return 1
-            #sleep(2)
-            #self.check_temp()
-        #self.temp, self.humd = DHT.read_retry(DHT.DHT22, self.dht22)
+    def check_temp(self) -> None:
+        self.temp, self.humd = DHT.read_retry(DHT.DHT22, self.dht22)
     
 
     def print_temp(self) -> None:
-        if self.check_temp():
-            print("Falha ao recuperar temperatura e humidade.")
-        else:
-            print("Temperatura: \t{0:0.1f}\nUmidade: \t{1:0.1f}".format(self.temp, self.humd))
+        self.check_temp()
+        print("Temperatura: \t{0:0.1f}\nUmidade: \t{1:0.1f}".format(self.temp, self.humd))
 
 
-    def print_ppl(self) -> None:
-        print(f"Pessoas: \t{self.ppl_qty}\n")
+class RoomThread(threading.Thread):
+    lights_timer : float
+    recent_pres : bool
+
+    def __init__(self, room: Room) -> None:
+        super().__init__()
+        self.room = room
+    
+
+    def run(self):
+        self.recent_pres = False
+        self.lights_timer = 0
+
+        while True:
+            self.room.count_ppl()
+            self.room.print_temp()
+
+            if self.room.alarm_on:
+                # checks for activity
+                if GPIO.input(self.room.inp['SPres']) or\
+                    GPIO.input(self.room.inp['SPor']) or\
+                    GPIO.input(self.room.inp['SJan']):
+                    # activates the alarm
+                    self.room.set_high('AL_BZ')
+                else:
+                    self.room.set_low('AL_BZ')
+            
+            else:
+                # checks for activity
+                if GPIO.input(self.room.inp['SPres']):
+                    self.turn_lights_on()
+
+                # checks for smoke
+                if GPIO.input(self.room.inp['SFum']): 
+                    self.room.set_high('AL_BZ')
+                elif self.room.state['AL_BZ']: # turns buzzer off if already on
+                    self.room.set_low('AL_BZ')
+            
+            if self.recent_pres:
+                self.time_lights()
+            sleep(0.1)
+
+
+    def turn_lights_on(self):
+        self.room.set_high('L_01')
+        self.room.set_high('L_02')
+        self.lights_timer = time()
+        self.recent_pres = True
+
+
+    def time_lights(self):
+        if time() - self._lights_timer > 15.0:
+            self.room.set_low('L_01')
+            self.room.set_low('L_02')
+            self.lights_timer = None
+            self.recent_pres = False
+

@@ -2,7 +2,7 @@ import RPi.GPIO as GPIO
 from time import sleep
 import os
 
-from temp import *
+from fse.teste.temp import *
 from fse.distrib.room import *
 
 GPIO.setmode(GPIO.BCM)

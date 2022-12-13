@@ -1,1 +1,1 @@
-__all__ = ['main', 'setup', 'temp']
+__all__ = ['room', 'control']

@@ -1,4 +1,4 @@
-from distrib import main as dist
+from distrib import *
 
 CONSOLE ="""
 --------Painel de Controle-------
