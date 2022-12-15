@@ -4,19 +4,13 @@ import json
 import board
 
 class Room:
-    inp: dict
+    inp : dict
     out: dict
-    name: str
-    address: str
-    port: int
-    central_address: str
-    central_port: int
-    states: dict
-    dht22_pin: int
-    ppl_qty: int
-    temp: float
-    humd: float
-    alarm_on: bool
+    state : dict
+    ppl_qty : int
+    temp : float
+    humd : float
+    alarm_on : bool
 
     def __init__(self, filename: str) -> None:
         with open(filename, 'r') as f:
@@ -56,16 +50,8 @@ class Room:
             elif item['tag'] == 'Sirene do Alarme':
                 self.out['AL_BZ'] = item['gpio']
         
-        self.name = file['nome']
-
-        self.address = file['ip_servidor_distribuido']
-        self.port = file['porta_servidor_distribuido']
-
-        self.central_address = file['ip_servidor_central']
-        self.central_port = file['porta_servidor_central']
-
         # creates a dict through dict comprehension to store the state of all outputs
-        self.states = {key: False for key in self.out}
+        self.state = {key: False for key in self.out}
         self.dht22_pin = file['sensor_temperatura'][0]['gpio']
         
         if self.dht22_pin == 18:
@@ -75,9 +61,6 @@ class Room:
 
         self.ppl_qty = 0
         self.alarm_on = False
-
-        self.temp = 0
-        self.humd = 0
 
         # sets up the board
         GPIO.setmode(GPIO.BCM)
@@ -100,16 +83,12 @@ class Room:
 
     def set_high(self, pin:str) -> None:
         GPIO.output(self.out[pin], GPIO.HIGH)
-        self.states[pin] = True
+        self.state[pin] = True
 
 
     def set_low(self, pin:str) -> None:
         GPIO.output(self.out[pin], GPIO.LOW)
-        self.states[pin] = False
-
-    # def update_states(self):
-    #     for item in self.out:
-    #         self.states[item] = GPIO.input(item)
+        self.state[pin] = False
 
 
     def count_ppl(self) -> None:
