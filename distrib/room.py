@@ -65,13 +65,10 @@ class Room:
         self.central_port = file['porta_servidor_central']
 
         # creates a dict through dict comprehension to store the state of all outputs
-        self.states = {key: False for key in self.out}
+        self.states = {key: 'Desligado' for key in self.out}
         self.dht22_pin = file['sensor_temperatura'][0]['gpio']
         
-        if self.dht22_pin == 18:
-            self.dht22 = DHT.DHT22(board.D18) #self.dht22_pin
-        elif self.dht22_pin == 4:
-            self.dht22 = DHT.DHT22(board.D4) #self.dht22_pin
+        self.dht22 = DHT.DHT22(board.D18, use_pulseio=False) if self.dht22_pin == 18 else DHT.DHT22(board.D4, use_pulseio=False)
 
         self.ppl_qty = 0
         self.alarm_on = False
@@ -100,12 +97,12 @@ class Room:
 
     def set_high(self, pin:str) -> None:
         GPIO.output(self.out[pin], GPIO.HIGH)
-        self.states[pin] = True
+        self.states[pin] = 'Ligado'
 
 
     def set_low(self, pin:str) -> None:
         GPIO.output(self.out[pin], GPIO.LOW)
-        self.states[pin] = False
+        self.states[pin] = 'Desligado'
 
     # def update_states(self):
     #     for item in self.out:
@@ -126,9 +123,6 @@ class Room:
             return 0
         except RuntimeError:
             return 1
-            #sleep(2)
-            #self.check_temp()
-        #self.temp, self.humd = DHT.read_retry(DHT.DHT22, self.dht22)
     
 
     def print_temp(self) -> None:

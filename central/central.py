@@ -1,4 +1,3 @@
-#from distrib import *
 from threads import *
 import socket
 import sys
@@ -19,21 +18,33 @@ def limpa_tela(n):
 
 
 def main():
-    host = '127.0.0.1'
+    host = '192.168.1.103' # sala 1 rasp42
     port = 34315
     # host = sys.argv[1]
     # port = int(sys.argv[2])
 
-    st = ServerThread(host, port)
-    st.run()
+    sc = ServerConnectionThread(host, port)
+    sc.start()
 
-    console()
+    while True:
+        if sc.sockets:
+            st = ServerThread(sc)
+        st.start()
 
 
 def console():
+    salas = ['sala 1', 'sala 2']
+
     while True:
+        i = 1
         limpa_tela(30)
-        print("")
+        print("Escolha a sala:")
+        for sala in salas:
+            print(f'[{i}] {sala}')
+            i += 1
+        print()
+        action = input()
+        
 
 
 # def main():
