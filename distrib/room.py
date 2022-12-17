@@ -12,6 +12,7 @@ class Room:
     central_address: str
     central_port: int
     states: dict
+    sensors: dict
     dht22_pin: int
     ppl_qty: int
     temp: float
@@ -66,6 +67,7 @@ class Room:
 
         # creates a dict through dict comprehension to store the state of all outputs
         self.states = {key: 'Desligado' for key in self.out}
+        self.sensors = ['SPres', 'SFum', 'SJan', 'SPor']
         self.dht22_pin = file['sensor_temperatura'][0]['gpio']
         
         self.dht22 = DHT.DHT22(board.D18, use_pulseio=False) if self.dht22_pin == 18 else DHT.DHT22(board.D4, use_pulseio=False)

@@ -45,7 +45,31 @@ class RoomThread(threading.Thread):
             elif item == 'AL_BZ':
                 dic['Sirene'] = self.room.states['AL_BZ']
         return dic
+
+
+    def check_sensors(self) -> bool:
+        for sensor in self.room.sensors:
+            return GPIO.input(self.room.inp[sensor])
     
+    def get_sensors(self) -> dict:
+        dic = {}
+
+        for sensor in self.room.sensors:
+            if sensor == 'SPres':
+                name = 'S. Presença'
+            elif sensor == 'SFum':
+                name = 'S. Fumaça'
+            elif sensor == 'SJan':
+                name = 'S. Janela'
+            elif sensor == 'SPor':
+                name = 'S. Porta'
+
+            if GPIO.input(self.room.inp[sensor]):
+                dic[name] = 'Ligado'
+            else:
+                dic[name] = 'Desligado'
+        return dic
+
 
     def get_ppl_qty(self) -> dict:
         dic = {'Pessoas': self.room.ppl_qty}
@@ -59,7 +83,7 @@ class RoomThread(threading.Thread):
     
     def get_json_dump(self) -> str:
         dic = {'Placa' : self.room.name}
-        dic = dic | self.get_states() | self.get_ppl_qty() | self.get_temp_humd()
+        dic = dic | self.get_states() | self.get_ppl_qty() | self.get_temp_humd() | self.get_sensors()
         return json.dumps(dic)
 
 
@@ -70,27 +94,18 @@ class RoomThread(threading.Thread):
         while True:
             self.room.count_ppl()
             self.room.check_temp()
-            
-            if self.room.alarm_on:
-                # checks for activity
-                if GPIO.input(self.room.inp['SPres']) or\
-                    GPIO.input(self.room.inp['SPor']) or\
-                    GPIO.input(self.room.inp['SJan']):
-                    # activates the alarm
+            if self.check_sensors():
+                if self.room.alarm_on:
                     self.room.set_high('AL_BZ')
                 else:
-                    self.room.set_low('AL_BZ')
-            
-            else:
-                # checks for activity
-                if GPIO.input(self.room.inp['SPres']):
-                    self.turn_lights_on()
+                    if GPIO.input(self.room.inp['SPres']):
+                        self.turn_lights_on()
 
-                # checks for smoke
-                if GPIO.input(self.room.inp['SFum']): 
-                    self.room.set_high('AL_BZ')
-                elif self.room.states['AL_BZ']: # turns buzzer off if already on
-                    self.room.set_low('AL_BZ')
+                    if GPIO.input(self.room.inp['SFum']): 
+                        self.room.set_high('AL_BZ')
+
+                    elif self.room.states['AL_BZ']: # turns buzzer off if already on
+                        self.room.set_low('AL_BZ')
             
             if self.recent_pres:
                 self.time_lights()
@@ -114,7 +129,7 @@ class ConnectionThread(threading.Thread):
 
     def send_message(self, message):
         self.central_soc.send(bytes(message, encoding='utf-8'))
-
+    
 
     def run(self):
         self.create_con()
@@ -155,4 +170,15 @@ class ConnectionThread(threading.Thread):
                 self.send_message('success')
                 print('all outputs are off')
 
+            elif request == 'switch_alarm':
+                if self.room_thread.room.alarm_on: 
+                    self.room_thread.room.alarm_on = False
+                    self.send_message('success')
+                elif self.room_thread.check_sensors:
+                    self.send_message('há sensores ativos, alarme não pode ser acionado')
+                    print('alarme não acionado')
+                else:
+                    self.room_thread.room.alarm_on = True
+                    self.send_message('success')
+                    print('alarme acionado')
 

@@ -1,6 +1,8 @@
 from time import sleep, time
 from threading import Thread
+from datetime import datetime
 import socket
+import csv
 import json
 import sys
 import os
@@ -28,9 +30,12 @@ class ServerRecvThread(Thread):
 """
     CONSOLE ="""
 --------Painel de Controle-------
+Aperte Enter para atualizar a lista de salas
 Digite o nome da sala para checar seus estados
 
-    [1] Atualizar lista de salas
+    [1] Acionar o alarme
+    [2] Ligar todas as lâmpadas do prédio
+    [3] Desligar todas as cargas do prédio
     [0] Sair do programa
 """
     CONSOLE_ROOM ="""
@@ -57,8 +62,7 @@ Aperte Enter para atualizar estados
 """
     states: dict
     sockets: dict
-    # stop_threads: bool
-
+    alarm: bool
 
     def __init__(self, host: str, port: int) -> None:
         super().__init__()
@@ -66,16 +70,17 @@ Aperte Enter para atualizar estados
         self.server.daemon = True
         self.states = {}
         self.sockets = {}
-        # self.stop_threads = False
+        self.alarm = False
     
 
     def send_request(self, destiny, message) -> None:
         self.sockets[destiny].send(bytes(message, encoding='utf-8'))
     
 
-    def wait_response(self, board) -> None:
+    def wait_response(self, board) -> str:
         response = self.sockets[board].recv(4096).decode('utf-8')
         print(response)
+        return response
 
 
     def print_dict(self, data:str) -> None:
@@ -95,11 +100,6 @@ Aperte Enter para atualizar estados
         print(self.CONSOLE)
 
 
-    # def clear_scr(self, n) -> None:
-    #     for _ in range(n):
-    #         print()
-    
-
     def cls(self):
         os.system('clear')
 
@@ -116,10 +116,26 @@ Aperte Enter para atualizar estados
         choice = input(self.LIGHTS)
 
         if choice == '0': return ''
-        elif choice == '1': return 'L_01'
-        elif choice == '2': return 'L_02'
-        elif choice == '3': return 'L_ON'
-        elif choice == '4': return 'L_OFF'
+        elif choice == '1':
+            msg = 'L_01'
+            log = f'{board},{msg} acionado'
+            self.write_log(log)
+            return msg
+        elif choice == '2':
+            msg = 'L_02'
+            log = f'{board},{msg} acionado'
+            self.write_log(log)
+            return msg
+        elif choice == '3':
+            msg = 'L_ON'
+            log = f'{board},lampadas ligadas'
+            self.write_log(log)
+            return msg
+        elif choice == '4':
+            msg = 'L_OFF'
+            log = f'{board},lampadas desligadas'
+            self.write_log(log)
+            return msg
 
     def room_console(self, board) -> None:
         while True:
@@ -130,38 +146,61 @@ Aperte Enter para atualizar estados
                 self.cls()
                 return
             elif choice == '1': msg = self.lights_console(board)
-            elif choice == '2': msg = 'AC'
-            elif choice == '3': msg = 'PR'
-            elif choice == '4': msg = 'all_off'
-            if choice == '': pass
+            elif choice == '2':
+                msg = 'AC'
+                log = f'{board},{msg} acionado'
+                self.write_log(log)
+            elif choice == '3': 
+                msg = 'PR'
+                log = f'{board},{msg} acionado'
+                self.write_log(log)
+            elif choice == '4':
+                msg = 'all_off'
+                log = f'{board},tudo desligado'
+                self.write_log(log)
+            if choice == '': self.cls()
             else:
                 self.send_request(board, msg)
                 self.cls()
                 self.wait_response(board)
             
     
-
-    # def update_console(self, board, msg):
-    #     while True:
-    #         if self.stop_threads: break
-    #         self.cls()
-    #         self.print_states(board)
-    #         print(msg)
-    #         sleep(2)
+    def write_log(self, event:str):
+        with open('log.csv', 'a', encoding='UTF8') as f:
+            f.write(f'{event},{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}\n')
     
 
     def run(self):
         self.server.start()
-
+        
         while True:
             self.sockets = self.server.sockets
             if self.sockets:
                 self.print_boards(self.sockets)
+                if self.alarm: print('Estado do alarme: Ligado\n') 
+                else:print('Estado do alarme: Desligado\n')
                 choice = input()
-                if choice == '0':
+
+                if choice == '0': # exit
                     for board in self.sockets:
                         self.send_request(board, 'kys NOW')
                     sys.exit()
+                elif choice == '1': # activate alarm
+                    self.send_request(board, 'switch_alarm')
+                    self.cls()
+                    if self.wait_response(board) == 'sucess':
+                        if self.alarm: self.alarm = False
+                        else: self.alarm = True
+                elif choice == '2': # all lights on
+                    for board in self.sockets:
+                        self.send_request(board, 'L_ON')
+                        self.cls()
+                        self.wait_response(board)
+                elif choice == '3': # all charges off
+                    for board in self.sockets:
+                        self.send_request(board, 'all_off')
+                        self.cls()
+                        self.wait_response(board)
                 else:
                     self.cls()
                     for board in self.sockets:
