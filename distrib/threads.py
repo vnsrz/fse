@@ -3,6 +3,7 @@ from room import Room
 import threading
 import socket
 import json
+import sys
 import RPi.GPIO as GPIO
 
 class RoomThread(threading.Thread):
@@ -97,9 +98,10 @@ class RoomThread(threading.Thread):
 
         
 class ConnectionThread(threading.Thread):
-    def __init__(self, rt:RoomThread) -> None:
+    def __init__(self, room:Room) -> None:
         super().__init__()
-        self.room_thread = rt
+        self.room_thread = RoomThread(room)
+        self.room_thread.daemon = True
         self.host = self.room_thread.room.central_address
         self.port = self.room_thread.room.central_port
     
@@ -107,6 +109,7 @@ class ConnectionThread(threading.Thread):
     def create_con(self):
         self.central_soc = socket.create_connection((self.host, self.port))
         self.send_message(self.room_thread.room.name)
+        print(f'connected to {self.host}')
 
 
     def send_message(self, message):
@@ -118,9 +121,38 @@ class ConnectionThread(threading.Thread):
         self.room_thread.start()
         print()
         while True:
+            print('standing by...')
             request = self.central_soc.recv(1024).decode('utf-8')
-            if request == 'hammer it falco':
+
+            if request == 'kys NOW':
+                print('server down')
+                sys.exit()
+
+            elif request == 'hammer it falco':
                 message = self.room_thread.get_json_dump()
                 self.send_message(message)
                 print('data sent')
+            
+            elif request == 'L_ON':
+                self.room_thread.room.set_high('L_01')
+                self.room_thread.room.set_high('L_02')
+                self.send_message('success')
+                print('all lights are on')
+
+            elif request == 'L_OFF':
+                self.room_thread.room.set_low('L_01')
+                self.room_thread.room.set_low('L_02')
+                self.send_message('success')
+                print('all lights are off')
+
+            elif request == 'AC' or request == 'PR' or request == 'L_01' or request == 'L_02':
+                self.room_thread.room.switch(request)
+                self.send_message('success')
+                print(f'{request} switched')
+
+            elif request == 'all_off':
+                self.room_thread.room.all_off()
+                self.send_message('success')
+                print('all outputs are off')
+
 

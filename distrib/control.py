@@ -4,8 +4,7 @@ import sys
 
 def main():
     json_file = sys.argv[1]
-    rt = RoomThread(Room(json_file))
-    ct = ConnectionThread(rt)
+    ct = ConnectionThread(Room(json_file))
     ct.start()
 
 

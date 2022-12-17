@@ -104,9 +104,12 @@ class Room:
         GPIO.output(self.out[pin], GPIO.LOW)
         self.states[pin] = 'Desligado'
 
-    # def update_states(self):
-    #     for item in self.out:
-    #         self.states[item] = GPIO.input(item)
+
+    def switch(self, pin:str) -> None:
+        if self.states[pin] == 'Ligado':
+            self.set_low(pin)
+        else:
+            self.set_high(pin)
 
 
     def count_ppl(self) -> None:
