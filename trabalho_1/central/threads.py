@@ -84,7 +84,7 @@ class StatesThread(threading.Thread):
             sleep(2)
 
 
-class ServerRecvThread(threading.Thread):
+class ConsoleThread(threading.Thread):
     sockets: dict
     alarm: bool
     global_count: int

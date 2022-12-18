@@ -6,7 +6,7 @@ def main():
 
     # host = '192.168.1.103'                  
     # port = 34315
-    server = ServerRecvThread(host, port)
+    server = ConsoleThread(host, port)
     server.start()
     
 
