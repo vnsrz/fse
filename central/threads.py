@@ -1,6 +1,6 @@
-from time import sleep, time
-import threading
 from datetime import datetime
+from time import sleep
+import threading
 import socket
 import json
 import sys
@@ -51,12 +51,11 @@ class ServerThread(threading.Thread):
         self.server = socket.create_server((host, port))
 
 
-    def run(self):
+    def run(self) -> None:
         while True:
             sock, addr = self.server.accept()
             room = sock.recv(1024).decode('utf-8')
             self.sockets[room] = sock
-            #print(f'\nConnection added: {room}\t host: {addr[0]}\t port: {addr[1]}\n')
 
 
 class StatesThread(threading.Thread):
@@ -70,10 +69,12 @@ class StatesThread(threading.Thread):
         self.states = {}
         self.sockets = {}
     
+
     def send_request(self, destiny, message) -> None:
         self.sockets[destiny].send(bytes(message, encoding='utf-8'))
 
-    def run(self):
+
+    def run(self) -> None:
         self.server.start()
         while True:
             self.sockets = self.server.sockets
@@ -123,7 +124,7 @@ class ServerRecvThread(threading.Thread):
         print(CONSOLE)
 
 
-    def cls(self):
+    def cls(self) -> None:
         os.system('clear')
 
 
@@ -200,14 +201,14 @@ class ServerRecvThread(threading.Thread):
                 self.update_states(board)
 
     
-    def print_ppl_count(self, sockets):
+    def print_ppl_count(self, sockets) -> None:
         self.global_count = 0
         for board in sockets:
             self.global_count += int(self.st.states[board]['Pessoas'])
         print(f'Qtd de pessoas no prédio: {self.global_count}\n')
 
 
-    def write_log(self, event:str):
+    def write_log(self, event:str) -> None:
         with open('log.csv', 'a', encoding='UTF8') as f:
             f.write(f'{event},{datetime.now().strftime("%d/%m/%Y %H:%M:%S")}\n')
 
@@ -268,8 +269,9 @@ class ServerRecvThread(threading.Thread):
                         self.wait_response(board)
                         log = f'{board},cargas desligadas'
                         self.write_log(log)
-                else: # escolhe sala
+                else: 
                     self.cls()
                     for board in self.sockets:
                         if choice == board:
                             self.room_console(board)
+

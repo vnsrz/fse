@@ -7,8 +7,6 @@ class Room:
     inp: dict
     out: dict
     name: str
-    address: str
-    port: int
     central_address: str
     central_port: int
     states: dict
@@ -23,11 +21,9 @@ class Room:
         with open(filename, 'r') as f:
             file = json.load(f)
 
-        # reads the inputs and outputs from the json file
         json_inputs = file['inputs']
         json_outputs = file['outputs']
         
-        # creates an empty dict for the inputs and outputs
         self.inp = {} 
         self.out = {} 
 
@@ -58,9 +54,6 @@ class Room:
                 self.out['AL_BZ'] = item['gpio']
         
         self.name = file['nome']
-
-        self.address = file['ip_servidor_distribuido']
-        self.port = file['porta_servidor_distribuido']
 
         self.central_address = file['ip_servidor_central']
         self.central_port = file['porta_servidor_central']
@@ -128,14 +121,3 @@ class Room:
             return 0
         except RuntimeError:
             return 1
-    
-
-    def print_temp(self) -> None:
-        if self.check_temp():
-            print("Falha ao recuperar temperatura e humidade.")
-        else:
-            print("Temperatura: \t{0:0.1f}\nUmidade: \t{1:0.1f}".format(self.temp, self.humd))
-
-
-    def print_ppl(self) -> None:
-        print(f"Pessoas: \t{self.ppl_qty}\n")

@@ -7,7 +7,7 @@
 - [x] Estado das entradas (Sensores);  
 - [x] Estado das Saídas (lâmpadas, aparelhos de ar, etc.);  
 - [x] Valor da temperatura e umidade de cada sala a cada 2 segundos;  
-- [ ] Contador de Ocupação (Número de Pessoas) presentes no prédio como um todo e a ocupação individual de cada sala;  
+- [x] Contador de Ocupação (Número de Pessoas) presentes no prédio como um todo e a ocupação individual de cada sala;  
 
 **Prover mecanismo na interface para:**  
 - [x] Acionar manualmente lâmpadas, aparelhos de ar-condicionado e projetores das salas;  

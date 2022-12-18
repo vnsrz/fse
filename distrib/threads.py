@@ -105,26 +105,13 @@ class RoomThread(threading.Thread):
                     if GPIO.input(self.room.inp['SFum']): 
                         self.room.set_high('AL_BZ')
 
-            elif self.room.states['AL_BZ']: # turns buzzer off if already on
+            elif self.room.states['AL_BZ']:
                 self.room.set_low('AL_BZ')
             
             if self.recent_pres:
                 self.time_lights()
             sleep(0.1)
 
-class SendStatesThread(threading.Thread):
-    def __init__(self, room:Room) -> None:
-        super().__init__()
-        self.room_thread = RoomThread(room)
-        self.room_thread.daemon = True
-    
-    def run(self):
-        request = self.central_soc.recv(1024).decode('utf-8')
-        if request == 'update':
-            message = self.room_thread.get_json_dump()
-            self.send_message(message)
-            print('data sent')
-    
 
 class ConnectionThread(threading.Thread):
     def __init__(self, room:Room) -> None:
