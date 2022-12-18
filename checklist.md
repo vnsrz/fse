@@ -4,17 +4,17 @@
 
 **Prover uma interface que mantenham atualizadas as seguintes informações:**
 
-- [ ] Estado das entradas (Sensores);  
+- [x] Estado das entradas (Sensores);  
 - [x] Estado das Saídas (lâmpadas, aparelhos de ar, etc.);  
 - [x] Valor da temperatura e umidade de cada sala a cada 2 segundos;  
 - [ ] Contador de Ocupação (Número de Pessoas) presentes no prédio como um todo e a ocupação individual de cada sala;  
 
 **Prover mecanismo na interface para:**  
 - [x] Acionar manualmente lâmpadas, aparelhos de ar-condicionado e projetores das salas;  
-- [ ] Acionamento do sistema de alarme que, quando estiver ligado, deve tocar um som de alerta (acionar a sirene/buzzer) ao detectar presenças ou abertura de portas/janelas;  
-- [ ] Acionamento de alarme de incêncio que, ao detectar presença de fumaça a qualquer momento deve soar o alarme;  
+- [x] Acionamento do sistema de alarme que, quando estiver ligado, deve tocar um som de alerta (acionar a sirene/buzzer) ao detectar presenças ou abertura de portas/janelas;  
+- [x] Acionamento de alarme de incêncio que, ao detectar presença de fumaça a qualquer momento deve soar o alarme;  
 
-- [ ] **Manter log (em arqvuio CSV) dos comandos acionados pelos usuários e do acionamento dos alarmes com data e hora de cada evento;**
+- [x] **Manter log (em arqvuio CSV) dos comandos acionados pelos usuários e do acionamento dos alarmes com data e hora de cada evento;**
 
 # Servidores Distribuídos
 

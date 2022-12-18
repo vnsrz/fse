@@ -49,7 +49,8 @@ class RoomThread(threading.Thread):
 
     def check_sensors(self) -> bool:
         for sensor in self.room.sensors:
-            return GPIO.input(self.room.inp[sensor])
+            if GPIO.input(self.room.inp[sensor]):
+                return True
     
     def get_sensors(self) -> dict:
         dic = {}
@@ -77,13 +78,13 @@ class RoomThread(threading.Thread):
     
 
     def get_temp_humd(self) -> dict:
-        dic = {'Temperatura' : self.room.temp, 'Umidade' : self.room.humd,}
+        dic = {'Temperatura' : f'{self.room.temp} ºC', 'Umidade' : f'{self.room.humd}%',}
         return dic
     
     
     def get_json_dump(self) -> str:
         dic = {'Placa' : self.room.name}
-        dic = dic | self.get_states() | self.get_ppl_qty() | self.get_temp_humd() | self.get_sensors()
+        dic = dic | self.get_states() | self.get_sensors() | self.get_ppl_qty() | self.get_temp_humd() 
         return json.dumps(dic)
 
 
@@ -104,14 +105,27 @@ class RoomThread(threading.Thread):
                     if GPIO.input(self.room.inp['SFum']): 
                         self.room.set_high('AL_BZ')
 
-                    elif self.room.states['AL_BZ']: # turns buzzer off if already on
-                        self.room.set_low('AL_BZ')
+            elif self.room.states['AL_BZ']: # turns buzzer off if already on
+                self.room.set_low('AL_BZ')
             
             if self.recent_pres:
                 self.time_lights()
             sleep(0.1)
 
-        
+class SendStatesThread(threading.Thread):
+    def __init__(self, room:Room) -> None:
+        super().__init__()
+        self.room_thread = RoomThread(room)
+        self.room_thread.daemon = True
+    
+    def run(self):
+        request = self.central_soc.recv(1024).decode('utf-8')
+        if request == 'update':
+            message = self.room_thread.get_json_dump()
+            self.send_message(message)
+            print('data sent')
+    
+
 class ConnectionThread(threading.Thread):
     def __init__(self, room:Room) -> None:
         super().__init__()
@@ -134,16 +148,15 @@ class ConnectionThread(threading.Thread):
     def run(self):
         self.create_con()
         self.room_thread.start()
-        print()
+        print('\nstanding by...')
         while True:
-            print('standing by...')
             request = self.central_soc.recv(1024).decode('utf-8')
 
             if request == 'kys NOW':
                 print('server down')
                 sys.exit()
 
-            elif request == 'hammer it falco':
+            elif request == 'update':
                 message = self.room_thread.get_json_dump()
                 self.send_message(message)
                 print('data sent')
@@ -174,9 +187,6 @@ class ConnectionThread(threading.Thread):
                 if self.room_thread.room.alarm_on: 
                     self.room_thread.room.alarm_on = False
                     self.send_message('success')
-                elif self.room_thread.check_sensors:
-                    self.send_message('há sensores ativos, alarme não pode ser acionado')
-                    print('alarme não acionado')
                 else:
                     self.room_thread.room.alarm_on = True
                     self.send_message('success')
