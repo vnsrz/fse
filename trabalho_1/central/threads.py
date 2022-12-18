@@ -217,7 +217,7 @@ class ServerRecvThread(threading.Thread):
         self.st.start()
         log = f'central,servidor iniciado'
         self.write_log(log)
-
+        self.cls()
         while True:
             self.sockets = self.st.sockets
             if self.sockets:
