@@ -1,5 +1,8 @@
 # Trabalho 1 - Automação predial
 
+Video de apresentação:
+https://youtu.be/r0o46d4ECTw
+
 ## 1. Instalação
 
 1. Coloque os conteúdos da pasta `central/` na placa que servirá como servidor central.  
@@ -17,4 +20,3 @@
 
 ### 2.3 Console de lâmpadas
 <img src="assets/console_lampadas.png" alt="" width="300" /><br>
-
