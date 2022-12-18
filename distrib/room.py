@@ -1,27 +1,29 @@
-from time import sleep, time
-import Adafruit_DHT as DHT
+import adafruit_dht as DHT
 import RPi.GPIO as GPIO
-import threading
 import json
+import board
 
 class Room:
-    inp : dict
+    inp: dict
     out: dict
-    state : dict
-    ppl_qty : int
-    temp : float
-    humd : float
-    alarm_on : bool
+    name: str
+    central_address: str
+    central_port: int
+    states: dict
+    sensors: dict
+    dht22_pin: int
+    ppl_qty: int
+    temp: float
+    humd: float
+    alarm_on: bool
 
     def __init__(self, filename: str) -> None:
         with open(filename, 'r') as f:
             file = json.load(f)
 
-        # reads the inputs and outputs from the json file
         json_inputs = file['inputs']
         json_outputs = file['outputs']
         
-        # creates an empty dict for the inputs and outputs
         self.inp = {} 
         self.out = {} 
 
@@ -51,11 +53,23 @@ class Room:
             elif item['tag'] == 'Sirene do Alarme':
                 self.out['AL_BZ'] = item['gpio']
         
+        self.name = file['nome']
+
+        self.central_address = file['ip_servidor_central']
+        self.central_port = file['porta_servidor_central']
+
         # creates a dict through dict comprehension to store the state of all outputs
-        self.state = {k: False for k in self.out}
-        self.dht22 = file['sensor_temperatura'][0]['gpio']
+        self.states = {key: 'Desligado' for key in self.out}
+        self.sensors = ['SPres', 'SFum', 'SJan', 'SPor']
+        self.dht22_pin = file['sensor_temperatura'][0]['gpio']
+        
+        self.dht22 = DHT.DHT22(board.D18, use_pulseio=False) if self.dht22_pin == 18 else DHT.DHT22(board.D4, use_pulseio=False)
+
         self.ppl_qty = 0
         self.alarm_on = False
+
+        self.temp = 0
+        self.humd = 0
 
         # sets up the board
         GPIO.setmode(GPIO.BCM)
@@ -68,22 +82,29 @@ class Room:
         GPIO.add_event_detect(self.inp['SC_IN'], GPIO.RISING)
         GPIO.add_event_detect(self.inp['SC_OUT'], GPIO.RISING)
 
-        self.turn_off()
+        self.all_off()
     
 
-    def turn_off(self) -> None:
+    def all_off(self) -> None:
         for pin in self.out:
             self.set_low(pin)
     
 
     def set_high(self, pin:str) -> None:
         GPIO.output(self.out[pin], GPIO.HIGH)
-        self.state[pin] = True
+        self.states[pin] = 'Ligado'
 
 
     def set_low(self, pin:str) -> None:
         GPIO.output(self.out[pin], GPIO.LOW)
-        self.state[pin] = False
+        self.states[pin] = 'Desligado'
+
+
+    def switch(self, pin:str) -> None:
+        if self.states[pin] == 'Ligado':
+            self.set_low(pin)
+        else:
+            self.set_high(pin)
 
 
     def count_ppl(self) -> None:
@@ -93,69 +114,10 @@ class Room:
             self.ppl_qty -= 1
 
 
-    def check_temp(self) -> None:
-        self.temp, self.humd = DHT.read_retry(DHT.DHT22, self.dht22)
-    
-
-    def print_temp(self) -> None:
-        self.check_temp()
-        print("Temperatura: \t{0:0.1f}\nUmidade: \t{1:0.1f}".format(self.temp, self.humd))
-
-
-class RoomThread(threading.Thread):
-    lights_timer : float
-    recent_pres : bool
-
-    def __init__(self, room: Room) -> None:
-        super().__init__()
-        self.room = room
-    
-
-    def run(self):
-        self.recent_pres = False
-        self.lights_timer = 0
-
-        while True:
-            self.room.count_ppl()
-            self.room.print_temp()
-
-            if self.room.alarm_on:
-                # checks for activity
-                if GPIO.input(self.room.inp['SPres']) or\
-                    GPIO.input(self.room.inp['SPor']) or\
-                    GPIO.input(self.room.inp['SJan']):
-                    # activates the alarm
-                    self.room.set_high('AL_BZ')
-                else:
-                    self.room.set_low('AL_BZ')
-            
-            else:
-                # checks for activity
-                if GPIO.input(self.room.inp['SPres']):
-                    self.turn_lights_on()
-
-                # checks for smoke
-                if GPIO.input(self.room.inp['SFum']): 
-                    self.room.set_high('AL_BZ')
-                elif self.room.state['AL_BZ']: # turns buzzer off if already on
-                    self.room.set_low('AL_BZ')
-            
-            if self.recent_pres:
-                self.time_lights()
-            sleep(0.1)
-
-
-    def turn_lights_on(self):
-        self.room.set_high('L_01')
-        self.room.set_high('L_02')
-        self.lights_timer = time()
-        self.recent_pres = True
-
-
-    def time_lights(self):
-        if time() - self._lights_timer > 15.0:
-            self.room.set_low('L_01')
-            self.room.set_low('L_02')
-            self.lights_timer = None
-            self.recent_pres = False
-
+    def check_temp(self) -> int:
+        try:
+            self.temp = self.dht22.temperature
+            self.humd = self.dht22.humidity
+            return 0
+        except RuntimeError:
+            return 1
