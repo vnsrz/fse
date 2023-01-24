@@ -14,3 +14,6 @@ Esse experimento iniciou com a placa na temperatura de 69.44 ºC e acompanhou su
 
 ### 2.2 Acionamento da ventoinha/resistor
 <img src="assets/AcionamentoxTempo.png" alt="" width="600" /><br>
+
+## 3. Video
+https://youtu.be/TyPuGtE7H8k

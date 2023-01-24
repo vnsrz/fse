@@ -1,7 +1,6 @@
 from crc import calcula_CRC
 import serial
 import struct
-import board
 
 class Comandos:
     def __init__(self, matr:bytes) -> None:
@@ -12,7 +11,6 @@ class Comandos:
     def send_data(self, cmd) -> None:
         crc = calcula_CRC(cmd)
         data_crc = cmd + struct.pack('<H', crc)
-        #print('data sent:\t', data_crc)
         self.srl.write(data_crc)
 
 
@@ -46,7 +44,7 @@ class Comandos:
 
         return result
         
-    def solicita_temp_referencia(self) -> float: # lembrar de pedir de novo se crc errado
+    def solicita_temp_referencia(self) -> float:
         cmd = struct.pack('<BBB', 0x01, 0x23, 0xc2) + self.matricula
 
         self.srl.readline()
@@ -69,11 +67,10 @@ class Comandos:
         
     def envia_sinal_controle(self, cmd): 
         cmd = struct.pack('<BBB', 0x01, 0x16, 0xd1) + self.matricula + struct.pack('i', cmd)
-        #print('sinal de controle enviado')
         self.send_data(cmd)
 
 
-    def le_comandos(self): # Funciona as vezes
+    def le_comandos(self):
         cmd = struct.pack('<BBB', 0x01, 0x23, 0xc3) + self.matricula
 
         self.srl.readline()
@@ -100,7 +97,7 @@ class Comandos:
         if self.check_crc(data):
             result = struct.unpack('<BBBiH', data)
             received = result[3].to_bytes(2, 'little')
-            #print(f'estado sis:\t {received}')
+            # print(f'estado sis:\t {received}')
     
 
     def modo_controle_temp_ref(self, state) -> None:
@@ -111,7 +108,7 @@ class Comandos:
         if self.check_crc(data):
             result = struct.unpack('<BBBiH', data)
             received = result[3].to_bytes(2, 'little')
-            #print(f'modo ctrl:\t {received}')
+            # print(f'modo ctrl:\t {received}')
     
 
     def envia_estado_funcionamento(self, state:int) -> None:
@@ -122,18 +119,17 @@ class Comandos:
         if self.check_crc(data):
             result = struct.unpack('<BBBiH', data)
             received = result[3].to_bytes(2, 'little')
-            #print(f'estado func:\t {received}')
+            # print(f'estado func:\t {received}')
     
 
     def envia_temp_ambiente(self, temp:float) -> None:
         cmd = struct.pack('<BBB', 0x01, 0x16, 0xd6) + self.matricula + struct.pack('f', temp)
-        #print(f'temp env:\t {temp}')
         self.send_data(cmd)
         data = self.srl.readline()
 
         if self.check_crc(data):
             result = struct.unpack('<BBBfH', data)
             received = result[3].to_bytes(2, 'little')
-            #print(f'tmp rec:\t {received}')
+            # print(f'tmp rec:\t {received}')
 
 

@@ -2,7 +2,6 @@ from simple_pid import PID
 import RPi.GPIO as GPIO
 from time import sleep
 import threading
-import os
 
 class Temperatura(threading.Thread):
     def __init__(self, event, controle):

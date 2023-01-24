@@ -1,12 +1,7 @@
 from adafruit_bme280 import basic as ada
 from comandos import Comandos
-from crc import calcula_CRC
-from time import sleep
 import threading
-import serial
-import struct
 import board
-import sys
 
 
 class Controle(threading.Thread):
@@ -33,7 +28,7 @@ class Controle(threading.Thread):
         self.temp_referencia = 0.0
         self.temp_interna = 0.0
         self.temp_externa = 0.0
-        self.temp_usuario = 0.0
+        self.temp_usuario = 30.0
         self.event = event
         self.comandos = {
             'liga': b'\xa1\x00',
@@ -42,14 +37,6 @@ class Controle(threading.Thread):
             'cancela': b'\xa4\x00',
             'menu': b'\xa5\x00',
         }
-
-
-    def write_log(self, t_int, t_ext,t_ref):
-        if not os.path.isfile('./log.csv'):
-            with open('log.csv', 'a', encoding='UTF8') as f:
-               f.write('data,temp_interna,temp_externa,temp_referencia,temp_usuario,acionamento_ventoinha,acionamento_resistor\n') 
-        with open('log.csv', 'a', encoding='UTF8') as f:
-            f.write(f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S")},{t_int:.2f},{t_ext:.2f},{t_ref:.2f},(temp_usuario),(acionamento_ventoinha),(acionamento_resistor)\n')
 
 
     def run(self):
@@ -93,9 +80,9 @@ class Controle(threading.Thread):
                     self.cmd.modo_controle_temp_ref(False)
                 else:
                     self.cmd.modo_controle_temp_ref(True)
+                    self.temp_referencia = self.temp_usuario
                     self.cmd.envia_sinal_referencia(self.temp_usuario)
 
                 self.modo_controle = not self.modo_controle
             
-            #sleep(0.5)
         

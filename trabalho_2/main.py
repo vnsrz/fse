@@ -38,7 +38,6 @@ def cls() -> None:
 def menu(ctrl:Controle, temp:Temperatura):
     while True:
         if event.is_set():
-            #print('menu fechando')
             break
         print(f'temp ref:\t {ctrl.temp_referencia:.2f} °C\ntemp int:\t {ctrl.temp_interna:.2f} °C\ntemp ext:\t {ctrl.temp_externa:.2f} °C')
         print(MENU)
